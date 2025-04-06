@@ -19,8 +19,8 @@ const app = express();
 app.use(
   cors({
     credentials: true,
-    // Explicitly use a string rather than env variable
-    origin: "http://localhost:5173",
+    // Replace the hardcoded CORS origin with:
+    origin: process.env.NETLIFY_URL || "http://localhost:5173",
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"]
   })
@@ -48,7 +48,7 @@ app.use((req, res, next) => {
 // Ensure origin for all requests
 app.use((req, res, next) => {
   // Force proper CORS for all responses
-  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5173');
+  res.setHeader('Access-Control-Allow-Origin', process.env.NETLIFY_URL || 'http://localhost:5173');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   next();
 });
