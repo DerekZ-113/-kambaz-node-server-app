@@ -62,8 +62,12 @@ app.use((req, res, next) => {
 
 // Ensure origin for all requests
 app.use((req, res, next) => {
-  // Force proper CORS for all responses
-  res.setHeader('Access-Control-Allow-Origin', process.env.NETLIFY_URL || 'http://localhost:5173');
+  // Force proper CORS for all responses - use the requesting origin if it's allowed
+  const origin = req.headers.origin;
+  if (origin && (origin.match(/https:\/\/(.*--)?teal-bavarois-cb7f52\.netlify\.app/) || 
+                 origin === 'http://localhost:5173')) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   next();
 });
