@@ -83,7 +83,7 @@ if (process.env.NODE_ENV !== "development") {
   sessionOptions.cookie = {
     sameSite: "none",
     secure: true,
-    domain: process.env.NODE_SERVER_DOMAIN,
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours in milliseconds
   };
 }
 
