@@ -19,8 +19,23 @@ const app = express();
 app.use(
   cors({
     credentials: true,
-    // Replace the hardcoded CORS origin with:
-    origin: process.env.NETLIFY_URL || "http://localhost:5173",
+    // Make CORS more flexible with function
+    origin: function(origin, callback) {
+      // Allow requests with no origin (like mobile apps, curl requests)
+      if (!origin) return callback(null, true);
+      
+      // Check if origin matches Netlify domain (with or without branch prefix)
+      if (origin.match(/https:\/\/(.*--)?teal-bavarois-cb7f52\.netlify\.app/)) {
+        return callback(null, true);
+      }
+      
+      // Allow localhost for development
+      if (origin === 'http://localhost:5173') {
+        return callback(null, true);
+      }
+      
+      callback(new Error('Not allowed by CORS'));
+    },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"]
   })
