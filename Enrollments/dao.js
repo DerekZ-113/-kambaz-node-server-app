@@ -1,62 +1,74 @@
-import Database from "../Database/index.js";
-import { v4 as uuidv4 } from "uuid";
+import model from "./model.js";
 
-// Get all enrollments
-export function findAllEnrollments() {
-  return Database.enrollments;
+export async function findAllEnrollments() {
+  return model.find();
 }
 
-// Get enrollments for a specific user
-export function findUserEnrollments(userId) {
-  return Database.enrollments.filter(
-    (enrollment) => enrollment.user === userId
-  );
+export async function findCoursesForUser(userId) {
+  const enrollments = await model.find({ user: userId }).populate("course");
+  return enrollments.map((enrollment) => enrollment.course);
 }
 
-// Get users enrolled in a course
-export function findCourseEnrollments(courseId) {
-  return Database.enrollments.filter(
-    (enrollment) => enrollment.course === courseId
-  );
-}
-
-// Check if a user is enrolled in a course
-export function isEnrolled(userId, courseId) {
-  return Database.enrollments.some(
-    (enrollment) => enrollment.user === userId && enrollment.course === courseId
-  );
-}
-
-// Enroll a user in a course
-export function enrollUserInCourse(userId, courseId) {
-  // Check if already enrolled
-  if (isEnrolled(userId, courseId)) {
-    return null;
-  }
+export async function findUsersForCourse(courseId) {
+  const enrollments = await model.find({ course: courseId }).populate("user");
   
-  const newEnrollment = {
-    _id: uuidv4(),
+  // Make sure we handle different user data formats correctly
+  return enrollments.map((enrollment) => {
+    // The populated user object might be in various formats depending on Mongoose
+    if (enrollment.user) {
+      // If it's a document with _doc, extract the actual user data
+      if (enrollment.user._doc) {
+        return enrollment.user._doc;
+      }
+      // Otherwise return the user object directly
+      return enrollment.user;
+    }
+    // Fallback for unpopulated data
+    return { _id: enrollment.user };
+  });
+}
+
+// Add missing functions used in routes.js
+export async function findUserEnrollments(userId) {
+  return model.find({ user: userId });
+}
+
+export async function findCourseEnrollments(courseId) {
+  return model.find({ course: courseId });
+}
+
+export async function isEnrolled(userId, courseId) {
+  const enrollment = await model.findOne({ user: userId, course: courseId });
+  return enrollment !== null;
+}
+
+export const enrollUserInCourse = async (userId, courseId) => {
+  const enrollmentId = `${userId}-${courseId}`;
+  
+  // Perform the update
+  await model.updateOne(
+    { _id: enrollmentId },
+    { 
+      $set: { 
+        user: userId, 
+        course: courseId,
+        enrollmentDate: new Date() // Add enrollment date
+      } 
+    },
+    { upsert: true }
+  );
+  
+  // Return a properly formatted enrollment document
+  return {
+    _id: enrollmentId,
     user: userId,
-    course: courseId
+    course: courseId,
+    enrollmentDate: new Date(),
+    status: "ENROLLED"
   };
-  
-  Database.enrollments.push(newEnrollment);
-  return newEnrollment;
-}
+};
 
-// Unenroll a user from a course
-export function unenrollUserFromCourse(userId, courseId) {
-  const enrollmentToRemove = Database.enrollments.find(
-    (enrollment) => enrollment.user === userId && enrollment.course === courseId
-  );
-  
-  if (enrollmentToRemove) {
-    Database.enrollments = Database.enrollments.filter(
-      (enrollment) => !(enrollment.user === userId && enrollment.course === courseId)
-    );
-    return enrollmentToRemove;
-  }
-  
-  return null;
+export function unenrollUserFromCourse(user, course) {
+  return model.deleteOne({ user, course });
 }
 
