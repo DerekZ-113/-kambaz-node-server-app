@@ -61,4 +61,21 @@ export default function EnrollmentRoutes(app) {
       res.status(500).json({ message: error.message });
     }
   });
+
+  // Add compatibility route for frontend that uses courses instead of enrollments
+  app.post("/api/users/:userId/courses/:courseId", async (req, res) => {
+    const userId = req.params.userId;
+    const courseId = req.params.courseId;
+    try {
+      const alreadyEnrolled = await dao.isEnrolled(userId, courseId);
+      if (alreadyEnrolled) {
+        return res.status(400).json({ message: "User is already enrolled in this course" });
+      }
+      
+      const enrollment = await dao.enrollUserInCourse(userId, courseId);
+      res.status(201).json(enrollment);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  });
 }
