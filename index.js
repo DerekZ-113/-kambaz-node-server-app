@@ -17,14 +17,13 @@ mongoose.connect(CONNECTION_STRING);
 
 const app = express();
 
-// IMPORTANT: Check the Lab5/index.js - that module 
-// likely contains another CORS middleware that's overriding ours
+// 1. First, add JSON parsing early
+app.use(express.json());
 
-// Fix: Use a more explicit CORS configuration
+// 2. Configure CORS properly - KEEP ONLY ONE CORS CONFIGURATION
 app.use(
   cors({
     credentials: true,
-    // Make CORS more flexible with function
     origin: function(origin, callback) {
       // Allow requests with no origin (like mobile apps, curl requests)
       if (!origin) return callback(null, true);
@@ -42,11 +41,11 @@ app.use(
       callback(new Error('Not allowed by CORS'));
     },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
   })
 );
 
-// Keep the debugging middleware
+// 3. Add debugging middleware (keep this for troubleshooting)
 app.use((req, res, next) => {
   console.log(`Request from: ${req.headers.origin} for ${req.path}`);
   const origSetHeader = res.setHeader;
@@ -57,33 +56,31 @@ app.use((req, res, next) => {
     if(name === 'Access-Control-Allow-Credentials') {
       console.log(`CORS Credentials: ${value}`);
     }
-    if(name === 'Access-Control-Allow-Origin' && value === '*') {
-      console.trace("Wildcard CORS header being set here");
-    }
     return origSetHeader.apply(this, arguments);
   };
   next();
 });
 
-// Ensure origin for all requests
-app.use((req, res, next) => {
-  // Force proper CORS for all responses - use the requesting origin if it's allowed
-  const origin = req.headers.origin;
-  if (origin && (origin.match(/https:\/\/(.*--)?teal-bavarois-cb7f52\.netlify\.app/) || 
-                 origin === 'http://localhost:5173')) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  }
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  next();
-});
+// 4. REMOVE THE SECOND CORS MIDDLEWARE (comment out or delete this block)
+// app.use((req, res, next) => {
+//   const origin = req.headers.origin;
+//   if (origin && (origin.match(/https:\/\/(.*--)?teal-bavarois-cb7f52\.netlify\.app/) || 
+//                  origin === 'http://localhost:5173')) {
+//     res.setHeader('Access-Control-Allow-Origin', origin);
+//   }
+//   res.setHeader('Access-Control-Allow-Credentials', 'true');
+//   next();
+// });
 
+// 5. Session configuration (keep your existing code)
 const sessionOptions = {
   secret: process.env.SESSION_SECRET || "kambaz",
   resave: false, 
-  saveUninitialized: false
+  saveUninitialized: false,
+  proxy: true // This is important for Render.com
 };
 
-// Add cookie settings for production
+// Production settings (keep your existing code)
 if (process.env.NODE_ENV === "production") {
   sessionOptions.cookie = {
     sameSite: 'none',
@@ -91,7 +88,6 @@ if (process.env.NODE_ENV === "production") {
     maxAge: 24 * 60 * 60 * 1000 // 1 day
   };
   
-  // Only add the store if the connection string is available
   if (process.env.MONGO_CONNECTION_STRING) {
     sessionOptions.store = MongoStore.create({
       mongoUrl: process.env.MONGO_CONNECTION_STRING,
@@ -100,18 +96,17 @@ if (process.env.NODE_ENV === "production") {
   }
 }
 
-// Then use the session middleware
+// 6. Use session middleware AFTER CORS, BEFORE ROUTES
 app.use(session(sessionOptions));
-app.use(express.json());
 
-// Add routes
+// 7. Add routes after all middleware
 Hello(app);
 Lab5(app);
 UserRoutes(app); 
 CoursesRoutes(app);
 ModuleRoutes(app);
 AssignmentRoutes(app);
-EnrollmentRoutes(app); // Add the enrollment routes
+EnrollmentRoutes(app);
 
 app.listen(process.env.PORT || 4000, () => {
   console.log(`Server running on port ${process.env.PORT || 4000}`);

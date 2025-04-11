@@ -63,9 +63,13 @@ export default function UserRoutes(app) {
   };
 
   const findCoursesForUser = async (req, res) => {
-    const currentUser = req.session["currentUser"];
+    console.log("Session in findCoursesForUser:", req.session);
+    console.log("Current user in session:", req.session.currentUser);
+    
+    const currentUser = req.session.currentUser;
     if (!currentUser) {
-      res.sendStatus(401);
+      console.log("No currentUser in session for /api/users/:uid/courses");
+      res.status(401).json({ message: "Unauthorized - You need to sign in" });
       return;
     }
     
@@ -143,9 +147,13 @@ export default function UserRoutes(app) {
   };
 
   const profile = async (req, res) => {    
-    const currentUser = req.session["currentUser"];
+    console.log("Session in profile endpoint:", req.session);
+    console.log("Current user in session:", req.session.currentUser);
+    
+    const currentUser = req.session.currentUser;
     if (!currentUser) {
-      res.sendStatus(401);
+      console.log("No currentUser in session for /api/users/profile");
+      res.status(401).json({ message: "Unauthorized - You need to sign in" });
       return;
     }
     res.json(currentUser);
