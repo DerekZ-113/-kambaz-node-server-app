@@ -168,7 +168,75 @@ export default function UserRoutes(app) {
   app.put("/api/users/:userId", updateUser);
   app.delete("/api/users/:userId", deleteUser);
   app.post("/api/users/signup", signup);
-  app.post("/api/users/signin", signin);
+  app.post("/api/users/signin", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      console.log(`Sign-in attempt for user: ${username}`);
+      
+      // Find the user
+      const user = await usersModel.findOne({ username });
+      
+      if (!user) {
+        console.log(`User not found: ${username}`);
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      console.log(`User found: ${user.username}, comparing passwords...`);
+      console.log(`DB password: ${user.password.substring(0,3)}***, Input password: ${password.substring(0,3)}***`);
+      
+      // Basic password comparison
+      if (user.password !== password) {
+        console.log(`Password mismatch for user: ${username}`);
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      // Success - set the session
+      console.log(`Authentication successful for: ${username}`);
+      req.session.currentUser = user;
+      
+      // Log session info
+      console.log(`Session ID: ${req.sessionID}`);
+      console.log(`Session data:`, req.session);
+      
+      // Remove password before sending response
+      const { password: _, ...userWithoutPassword } = user.toObject();
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error("Sign-in error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
   app.post("/api/users/signout", signout);
   app.post("/api/users/profile", profile);
+
+  // Add a test endpoint to create a user
+  app.get("/api/users/create-test", async (req, res) => {
+    try {
+      // Check if test user already exists
+      const existing = await usersModel.findOne({ username: "test" });
+      if (existing) {
+        return res.json({ 
+          message: "Test user already exists", 
+          user: { username: existing.username, _id: existing._id } 
+        });
+      }
+      
+      // Create test user
+      const testUser = await usersModel.create({
+        username: "test",
+        password: "test",
+        firstName: "Test",
+        lastName: "User",
+        role: "FACULTY"
+      });
+      
+      res.json({ 
+        message: "Test user created", 
+        user: { username: testUser.username, _id: testUser._id } 
+      });
+    } catch (error) {
+      console.error("Error creating test user:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
 }
