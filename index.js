@@ -10,6 +10,7 @@ import ModuleRoutes from './Modules/routes.js';
 import AssignmentRoutes from './Assignments/routes.js';
 import EnrollmentRoutes from './Enrollments/routes.js';
 import mongoose from "mongoose";
+import MongoStore from "connect-mongo"; // You'll need to install this
 
 const CONNECTION_STRING = process.env.MONGO_CONNECTION_STRING || "mongodb://127.0.0.1:27017/kambaz"
 mongoose.connect(CONNECTION_STRING);
@@ -80,16 +81,14 @@ const sessionOptions = {
   secret: process.env.SESSION_SECRET || "kambaz",
   resave: false, 
   saveUninitialized: false,
+  // Use MongoDB for session store in production
+  store: process.env.NODE_ENV === "production" 
+    ? MongoStore.create({
+        mongoUrl: process.env.MONGO_CONNECTION_STRING,
+        ttl: 60 * 60 * 24 // 1 day
+      }) 
+    : undefined
 };
-
-if (process.env.NODE_ENV !== "development") {
-  sessionOptions.proxy = true;
-  sessionOptions.cookie = {
-    sameSite: "none",
-    secure: true,
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours in milliseconds
-  };
-}
 
 app.use(session(sessionOptions));
 app.use(express.json());
