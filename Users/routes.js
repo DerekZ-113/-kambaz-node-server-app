@@ -213,7 +213,8 @@ export default function UserRoutes(app) {
   app.get("/api/users/create-test", async (req, res) => {
     try {
       // Check if test user already exists
-      const existing = await usersModel.findOne({ username: "test" });
+      const existing = await dao.findUserByUsername("test");
+      
       if (existing) {
         return res.json({ 
           message: "Test user already exists", 
@@ -222,7 +223,7 @@ export default function UserRoutes(app) {
       }
       
       // Create test user
-      const testUser = await usersModel.create({
+      const testUser = await dao.createUser({
         username: "test",
         password: "test",
         firstName: "Test",
