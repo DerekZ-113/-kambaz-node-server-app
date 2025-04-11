@@ -173,8 +173,8 @@ export default function UserRoutes(app) {
       const { username, password } = req.body;
       console.log(`Sign-in attempt for user: ${username}`);
       
-      // Find the user
-      const user = await usersModel.findOne({ username });
+      // Use the dao function instead of direct model access
+      const user = await dao.findUserByUsername(username);
       
       if (!user) {
         console.log(`User not found: ${username}`);
@@ -199,7 +199,7 @@ export default function UserRoutes(app) {
       console.log(`Session data:`, req.session);
       
       // Remove password before sending response
-      const { password: _, ...userWithoutPassword } = user.toObject();
+      const { password: _, ...userWithoutPassword } = user.toObject ? user.toObject() : user;
       res.json(userWithoutPassword);
     } catch (error) {
       console.error("Sign-in error:", error);
