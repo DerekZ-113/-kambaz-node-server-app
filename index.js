@@ -80,16 +80,27 @@ app.use((req, res, next) => {
 const sessionOptions = {
   secret: process.env.SESSION_SECRET || "kambaz",
   resave: false, 
-  saveUninitialized: false,
-  // Use MongoDB for session store in production
-  store: process.env.NODE_ENV === "production" 
-    ? MongoStore.create({
-        mongoUrl: process.env.MONGO_CONNECTION_STRING,
-        ttl: 60 * 60 * 24 // 1 day
-      }) 
-    : undefined
+  saveUninitialized: false
 };
 
+// Add cookie settings for production
+if (process.env.NODE_ENV === "production") {
+  sessionOptions.cookie = {
+    sameSite: 'none',
+    secure: true,
+    maxAge: 24 * 60 * 60 * 1000 // 1 day
+  };
+  
+  // Only add the store if the connection string is available
+  if (process.env.MONGO_CONNECTION_STRING) {
+    sessionOptions.store = MongoStore.create({
+      mongoUrl: process.env.MONGO_CONNECTION_STRING,
+      ttl: 60 * 60 * 24 // 1 day
+    });
+  }
+}
+
+// Then use the session middleware
 app.use(session(sessionOptions));
 app.use(express.json());
 
