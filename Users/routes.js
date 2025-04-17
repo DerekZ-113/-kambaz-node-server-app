@@ -120,14 +120,30 @@ export default function UserRoutes(app) {
   };
 
   const signup = async (req, res) => { 
-    const user = await dao.findUserByUsername(req.body.username);
-    if (user) {
-      res.status(400).json({ message: "Username already taken" });
-      return;
+    try {
+      const user = await dao.findUserByUsername(req.body.username);
+      if (user) {
+        res.status(400).json({ message: "Username already taken" });
+        return;
+      }
+      
+      // Validate role selection - ensure only valid roles can be selected
+      const role = req.body.role && ["STUDENT", "FACULTY"].includes(req.body.role) 
+        ? req.body.role 
+        : "STUDENT"; // Default to STUDENT if no valid role provided
+      
+      const newUser = {
+        ...req.body,
+        role
+      };
+      
+      const currentUser = await dao.createUser(newUser);
+      req.session["currentUser"] = currentUser;
+      res.json(currentUser);
+    } catch (error) {
+      console.error("Signup error:", error);
+      res.status(500).json({ message: "Error during signup", error: error.message });
     }
-    const currentUser = await dao.createUser(req.body);
-    req.session["currentUser"] = currentUser;
-    res.json(currentUser);
   };
 
   const signin = async (req, res) => {    

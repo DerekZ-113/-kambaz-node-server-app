@@ -9,6 +9,10 @@ import "dotenv/config";
 import ModuleRoutes from './Modules/routes.js';
 import AssignmentRoutes from './Assignments/routes.js';
 import EnrollmentRoutes from './Enrollments/routes.js';
+// Add imports for quiz-related routes
+import QuizRoutes from './Quizzes/routes.js';
+import QuestionRoutes from './Questions/routes.js';
+import QuizAttemptRoutes from './QuizAttempts/routes.js';
 import mongoose from "mongoose";
 import MongoStore from "connect-mongo"; // You'll need to install this
 
@@ -107,6 +111,10 @@ CoursesRoutes(app);
 ModuleRoutes(app);
 AssignmentRoutes(app);
 EnrollmentRoutes(app);
+// Register quiz-related routes
+QuizRoutes(app);
+QuestionRoutes(app);
+QuizAttemptRoutes(app);
 
 app.listen(process.env.PORT || 4000, () => {
   console.log(`Server running on port ${process.env.PORT || 4000}`);
